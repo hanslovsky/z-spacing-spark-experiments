@@ -11,7 +11,7 @@
 	</repositories>
 
 	<groupId>de.hanslovsky</groupId>
-	<artifactId>z_spacing-experiments</artifactId>
+	<artifactId>z_spacing-spark-experiments</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
 	<name>plugins/z_spacing.jar</name>
