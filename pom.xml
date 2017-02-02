@@ -38,52 +38,17 @@
 			<artifactId>imglib2-realtransform</artifactId>
 			<version>2.0.0-beta-34</version>
 		</dependency>
-		<!-- <dependency> -->
-		<!-- 	<groupId>net.imagej</groupId> -->
-		<!-- 	<artifactId>ij</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>mpicbg</groupId> -->
-		<!-- 	<artifactId>mpicbg</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>junit</groupId> -->
-		<!-- 	<artifactId>junit</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>net.imglib2</groupId> -->
-		<!-- 	<artifactId>imglib2</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>net.imglib2</groupId> -->
-		<!-- 	<artifactId>imglib2-ij</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>net.imglib2</groupId> -->
-		<!-- 	<artifactId>imglib2-realtransform</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>net.imglib2</groupId> -->
-		<!-- 	<artifactId>imglib2-algorithm</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>org.apache.commons</groupId> -->
-		<!-- 	<artifactId>commons-math3</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>net.imglib2</groupId> -->
-		<!-- 	<artifactId>imglib2-algorithm-fft</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>sc.fiji</groupId> -->
-		<!-- 	<artifactId>TrakEM2_</artifactId> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>sc.fiji</groupId> -->
-		<!-- 	<artifactId>bigdataviewer-vistools</artifactId> -->
-		<!-- 	<version>1.0.0-beta-3</version> -->
-		<!-- </dependency> -->
-
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.10</artifactId>
+            <version>2.0.1</version>
+            <scope>provided</scope> <!-- provided!! -->
+        </dependency>
+        <dependency>
+            <groupId>saalfeldlab</groupId>
+            <artifactId>z_spacing-spark</artifactId>
+            <version>0.0.5-SNAPSHOT</version>
+        </dependency>
 	</dependencies>
 
 	<build>
