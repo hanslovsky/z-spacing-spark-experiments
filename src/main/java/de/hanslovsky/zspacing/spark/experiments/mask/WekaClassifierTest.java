@@ -12,6 +12,7 @@ import bdv.util.BdvFunctions;
 import bdv.util.BdvOptions;
 import bdv.util.BdvStackSource;
 import de.hanslovsky.zspacing.spark.experiments.mask.weka.InstanceView;
+import de.hanslovsky.zspacing.spark.experiments.mask.weka.Predict;
 import ij.ImagePlus;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.Converters;
@@ -26,6 +27,8 @@ import net.imglib2.util.Intervals;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import net.imglib2.view.composite.RealComposite;
+import weka.classifiers.Classifier;
+import weka.core.SerializationHelper;
 
 public class WekaClassifierTest
 {
@@ -63,10 +66,13 @@ public class WekaClassifierTest
 			} );
 		}
 
-		final ExecutorService es = Executors.newFixedThreadPool( nThreads );
-		final List< Future< Void > > fs = es.invokeAll( tasks );
-		for ( final Future< Void > f : fs )
-			f.get();
+		{
+			final ExecutorService es = Executors.newFixedThreadPool( nThreads );
+			final List< Future< Void > > fs = es.invokeAll( tasks );
+			for ( final Future< Void > f : fs )
+				f.get();
+			es.shutdown();
+		}
 
 		System.out.println( "Generated mask." );
 
@@ -75,6 +81,33 @@ public class WekaClassifierTest
 			t.set( 125 << ( s.get() > 0.5 ? 16 : 8 ) );
 		}, new ARGBType() ), "mask", BdvOptions.options().addTo( bdv ) );
 
+		final RandomAccessibleInterval< RealComposite< DoubleType > > map = Views.collapseReal( ArrayImgs.doubles( img.dimension( 0 ), img.dimension( 1 ), 2 ) );
+
+		tasks.clear();
+		for ( int y = 0; y < img.dimension( 1 ); y += stepSize )
+		{
+			final IntervalView< RealComposite< DoubleType > > interval = Views.interval( map, new long[] { 0, y }, new long[] { img.max( 0 ), Math.min( y + stepSize - 1, img.max( 1 ) ) } );
+			tasks.add( () -> {
+				Predict.predict( instances, ( Classifier ) SerializationHelper.read( classifierPath ), interval );
+				return null;
+			} );
+		}
+
+		{
+			final ExecutorService es = Executors.newFixedThreadPool( nThreads );
+			final List< Future< Void > > fs = es.invokeAll( tasks );
+			for ( final Future< Void > f : fs )
+				f.get();
+			es.shutdown();
+		}
+
+		final BdvStackSource< DoubleType > bdv2 = BdvFunctions.show( Converters.convert( map, ( s, t ) -> {
+			t.set( s.get( 0 ).get() * ( 1 << 16 ) );
+		}, new DoubleType() ), "map", BdvOptions.options().is2D() );
+
+		BdvFunctions.show( Converters.convert( map, ( s, t ) -> {
+			t.set( s.get( 1 ).get() * ( 1 << 16 ) );
+		}, new DoubleType() ), "map", BdvOptions.options().addTo( bdv2 ) );
 
 
 	}
