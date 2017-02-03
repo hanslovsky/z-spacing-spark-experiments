@@ -29,11 +29,13 @@ public class DaviToySet
 		LogManager.getRootLogger().setLevel( Level.ERROR );
 
 		final String path = "/data/hanslovskyp/davi_toy_set/z-position-spark-test";
-		final String experiment = "20170201_202843";
+		final String experiment = "20170202_120337";
 		final String configPath = path + "/" + experiment + "/config.json";
 		final ScaleOptions scaleOptions = ScaleOptions.createFromFile( configPath );
 
 		ZSpacing.run( sc, scaleOptions );
+
+		sc.close();
 
 	}
 
