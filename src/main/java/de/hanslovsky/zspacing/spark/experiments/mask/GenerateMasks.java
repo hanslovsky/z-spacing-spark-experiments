@@ -2,6 +2,7 @@ package de.hanslovsky.zspacing.spark.experiments.mask;
 
 import java.io.File;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -14,6 +15,7 @@ import org.janelia.thickness.utility.Utility;
 import ij.process.FloatProcessor;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.type.numeric.real.FloatType;
+import scala.Tuple2;
 
 public class GenerateMasks
 {
@@ -36,7 +38,11 @@ public class GenerateMasks
 
 		new File( String.format( targetPattern, start ) ).getParentFile().mkdirs();
 
-		final JavaPairRDD< Integer, FloatProcessor > masks = sc.parallelize( Utility.arange( start, stop, step ) ).mapToPair( new Utility.LoadFileFromPattern( sourcePattern ) ).mapValues( fp -> {
+		final ArrayList< Integer > indices = Utility.arange( start, stop, step );
+		final int size = indices.size();
+		final Broadcast< ArrayList< Integer > > indicesBC = sc.broadcast( indices );
+
+		final JavaPairRDD< Integer, FloatProcessor > masks = sc.parallelize( Utility.arange( size ) ).mapToPair( i -> new Tuple2<>( i, indicesBC.getValue().get( i ) ) ).mapValues( new Utility.LoadFileFromPattern( sourcePattern ) ).mapValues( fp -> {
 			final int w = fp.getWidth();
 			final int h = fp.getHeight();
 			final float[] arr = new float[ w * h ];
@@ -44,7 +50,7 @@ public class GenerateMasks
 			return new FloatProcessor( w, h, arr );
 		} );
 
-		final long count = masks.mapToPair( new Utility.WriteToFormatString<>( targetPattern ) ).count();
+		final long count = masks.mapToPair( t -> new Tuple2<>( indicesBC.getValue().get( t._1() ), t._2() ) ).mapToPair( new Utility.WriteToFormatString<>( targetPattern ) ).count();
 		LOG.info( "Wrote " + count + " mask images." );
 	}
 
