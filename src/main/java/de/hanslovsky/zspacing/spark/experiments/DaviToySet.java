@@ -2,6 +2,7 @@ package de.hanslovsky.zspacing.spark.experiments;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -12,11 +13,12 @@ import org.janelia.thickness.ScaleOptions;
 import org.janelia.thickness.ZSpacing;
 
 import loci.formats.FormatException;
+import pl.joegreen.lambdaFromString.LambdaCreationException;
 
 public class DaviToySet
 {
 
-	public static void main( final String[] args ) throws FormatException, IOException
+	public static void main( final String[] args ) throws FormatException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException, LambdaCreationException
 	{
 
 		final SparkConf conf = new SparkConf()
