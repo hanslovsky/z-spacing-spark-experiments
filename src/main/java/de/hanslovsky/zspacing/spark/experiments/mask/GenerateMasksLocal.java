@@ -6,7 +6,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.janelia.thickness.KryoSerialization;
+import org.janelia.thickness.kryo.KryoSerialization;
 
 public class GenerateMasksLocal
 {
