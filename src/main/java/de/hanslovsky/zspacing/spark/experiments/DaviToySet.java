@@ -9,27 +9,24 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.janelia.thickness.ComputeMatrices;
 import org.janelia.thickness.ScaleOptions;
-import org.janelia.thickness.ZSpacing;
 import org.janelia.thickness.kryo.KryoSerialization;
+import org.janelia.thickness.matrix.ComputeMatrices;
 import org.janelia.utility.MatrixStripConversion;
 
 import ij.ImageJ;
 import ij.ImagePlus;
 import loci.formats.FormatException;
 import net.imglib2.Cursor;
-import net.imglib2.FinalInterval;
-import net.imglib2.Point;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.outofbounds.OutOfBounds;
 import net.imglib2.type.numeric.NumericType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
+import net.imglib2.view.ExtendedRandomAccessibleInterval;
 import net.imglib2.view.Views;
 import pl.joegreen.lambdaFromString.LambdaCreationException;
 
@@ -46,11 +43,12 @@ public class DaviToySet
 		//		 ComputeMatrices.SubSectionCorrelations.LOG.setLevel( Level.DEBUG );
 
 		final String path = "/data/hanslovskyp/davi_toy_set/z-position-spark-test";
-		final String experiment = "20170202_120337";
+//		final String experiment = "20170202_120337";
+		final String experiment = "20170201_202843";
 		final String configPath = path + "/" + experiment + "/config.json";
 		final ScaleOptions scaleOptions = ScaleOptions.createFromFile( configPath );
 
-		ZSpacing.run( sc, scaleOptions );
+//		ZSpacing.run( sc, scaleOptions, true );
 		ComputeMatrices.run( sc, scaleOptions );
 
 		new ImageJ();
@@ -72,26 +70,20 @@ public class DaviToySet
 		t1.setOne();
 		t0.setZero();
 
-		final long r = halfStrip.dimension( 0 );
+		final long r = halfStrip.dimension( 0 ) - 1;
 		final Img< T > img = fac.create( new long[] { r * 2 + 1, halfStrip.dimension( 1 ) }, t );
-		for ( final T v : Views.hyperSlice( img, 0, r ) )
-			v.setOne();
 
-		for ( final Pair< T, T > p : Views.interval( Views.pair( Views.offset( img, r + 1, 0 ), halfStrip ), halfStrip ) )
+		for ( final Pair< T, T > p : Views.interval( Views.pair( Views.offset( img, r, 0 ), halfStrip ), halfStrip ) )
 			p.getA().set( p.getB() );
 
+		final ExtendedRandomAccessibleInterval< T, RandomAccessibleInterval< T > > ext = Views.extendValue( halfStrip, t );
 
-		final OutOfBounds< T > access = Views.extendValue( halfStrip, t ).randomAccess();
-
-		for ( final Cursor< T > c = Views.interval( img, new FinalInterval( new long[] { r, img.dimension( 1 ) } ) ).cursor(); c.hasNext(); )
+		for ( long i = 1; i <= r; ++i )
 		{
-			final T v = c.next();
-			final long x = c.getLongPosition( 0 );
-			final long y = c.getLongPosition( 1 );
-			final long d = r - x + 1;
-			access.setPosition( new long[] { d, y - d } );
-			System.out.println( new Point( c ) + " " + new Point( access ) );
-			v.set( access.get() );
+			final Cursor< T > target = Views.hyperSlice( img, 0, r - i ).cursor();
+			final Cursor< T > source = Views.offsetInterval( Views.hyperSlice( ext, 0, i ), new long[] { -i }, new long[] { halfStrip.dimension( 1 ) } ).cursor();
+			while ( source.hasNext() )
+				target.next().set( source.next() );
 		}
 
 		return img;
