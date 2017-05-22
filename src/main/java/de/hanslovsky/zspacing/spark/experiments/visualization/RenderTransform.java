@@ -28,6 +28,7 @@ import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.Volatile;
+import net.imglib2.algorithm.gradient.PartialDerivative;
 import net.imglib2.cache.img.CellLoader;
 import net.imglib2.cache.img.DiskCachedCellImg;
 import net.imglib2.cache.img.DiskCachedCellImgFactory;
@@ -113,6 +114,12 @@ public class RenderTransform
 			final Img< FloatType >[] scaledForwardTransforms = new Img[ config.radii.length ];
 			final Img< FloatType >[] scaledBackwardTransforms = new Img[ config.radii.length ];
 
+			final Img< FloatType >[] forwardDiffs = new Img[ config.radii.length ];
+			final Img< FloatType >[] backwardDiffs = new Img[ config.radii.length ];
+
+			final Img< FloatType >[] forwardGrads = new Img[ config.radii.length ];
+			final Img< FloatType >[] backwardGrads = new Img[ config.radii.length ];
+
 			final long scaleToSource = 1 << config.scale;
 
 			{
@@ -142,11 +149,11 @@ public class RenderTransform
 					final DiskCachedCellImgFactory< FloatType > transformFactory = new DiskCachedCellImgFactory<>( scaledOptions );
 
 					final CellLoader< FloatType > forwardLoader = img -> {
-						burnInSubtract( ImageJFunctions.wrapFloat( new ImagePlus( String.format( forwardFormat, img.min( 2 ) ) ) ), img, new FloatType( img.min( 2 ) ) );
+						burnInSubtract( ImageJFunctions.wrapFloat( new ImagePlus( String.format( forwardFormat, img.min( 2 ) ) ) ), img, new FloatType( 0 ) );//new FloatType( img.min( 2 ) ) );
 					};
 
 					final CellLoader< FloatType > backwardLoader = img -> {
-						burnInSubtract( ImageJFunctions.wrapFloat( new ImagePlus( String.format( backwardFormat, img.min( 2 ) ) ) ), img, new FloatType( img.min( 2 ) ) );
+						burnInSubtract( ImageJFunctions.wrapFloat( new ImagePlus( String.format( backwardFormat, img.min( 2 ) ) ) ), img, new FloatType( 0 ) );//new FloatType( img.min( 2 ) ) );
 					};
 
 					final DiskCachedCellImg< FloatType, ? > forward = transformFactory.create( transformDim, new FloatType(), forwardLoader );
@@ -173,6 +180,18 @@ public class RenderTransform
 					final DiskCachedCellImg< FloatType, ? > scaledForward = scaledTransformFactory.create( dim, new FloatType(), scaledForwardLoader );
 
 					scaledForwardTransforms[ i ] = scaledForward;
+
+					forwardGrads[ i ] = scaledTransformFactory.create( dim, new FloatType(), ( CellLoader< FloatType > ) img -> {
+						PartialDerivative.gradientCentralDifference2( Views.extendBorder( scaledForward ), img, 2 );
+						for ( final FloatType flt : img )
+							flt.mul( 100 );
+					} );
+
+					forwardDiffs[ i ] = scaledTransformFactory.create( dim, new FloatType(), ( CellLoader< FloatType > ) img -> {
+						for ( Cursor< FloatType > src = Views.flatIterable( Views.interval( scaledForward, img ) ).cursor(), tgt = Views.flatIterable( img ).cursor(); src.hasNext(); )
+							tgt.next().setReal( src.next().getRealDouble() - tgt.getDoublePosition( 2 ) );
+					} );
+
 				}
 //				opener.context().dispose();
 			}
@@ -189,14 +208,24 @@ public class RenderTransform
 			final BdvStackSource< Volatile< UnsignedByteType > > bdv = BdvFunctions.show( VolatileViews.wrapAsVolatile( img, queue ), "source" );
 			bdv.getBdvHandle().getSetupAssignments().getMinMaxGroups().get( 0 ).setRange( 0, 255 );
 			bdv.setDisplayRange( 0, 255 );
+
 			bdv.getBdvHandle().getViewerPanel().setDisplayMode( DisplayMode.SINGLE );
 
-			for ( int i = 0; i < nIterations; ++i )
+			for ( int i = 0, k = nIterations - 2; i < 2; ++i, ++k )
 			{
-				BdvFunctions.show( VolatileViews.wrapAsVolatile( scaledForwardTransforms[ i ], queue ), "forward", BdvOptions.options().addTo( bdv ) );
+//				BdvFunctions.show( VolatileViews.wrapAsVolatile( scaledForwardTransforms[ i ], queue ), "forward", BdvOptions.options().addTo( bdv ) );
+				BdvFunctions.show( VolatileViews.wrapAsVolatile( forwardDiffs[ k ], queue ), "forward diff " + i, BdvOptions.options().addTo( bdv ) );
+//				BdvFunctions.show( forwardDiffs[ i ], "forward " + i, BdvOptions.options().addTo( bdv ) );
 				bdv.getBdvHandle().getSetupAssignments().getMinMaxGroups().get( i + 1 ).setRange( 10, 30 );
 			}
 
+			for ( int i = 0, k = nIterations - 2; i < 2; ++i, ++k )
+			{
+//				BdvFunctions.show( VolatileViews.wrapAsVolatile( scaledForwardTransforms[ i ], queue ), "forward", BdvOptions.options().addTo( bdv ) );
+				BdvFunctions.show( VolatileViews.wrapAsVolatile( forwardGrads[ k ], queue ), "forward grad " + i, BdvOptions.options().addTo( bdv ) );
+//				BdvFunctions.show( forwardDiffs[ i ], "forward " + i, BdvOptions.options().addTo( bdv ) );
+				bdv.getBdvHandle().getSetupAssignments().getMinMaxGroups().get( i + 3 ).setRange( 0, 200 );
+			}
 
 		}
 
